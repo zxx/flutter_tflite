@@ -24,6 +24,7 @@ import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.gpu.GpuDelegate;
 import org.tensorflow.lite.Tensor;
 
 import java.io.BufferedReader;
@@ -49,6 +50,7 @@ import java.util.Vector;
 public class TflitePlugin implements MethodCallHandler {
   private final Registrar mRegistrar;
   private Interpreter tfLite;
+  private GpuDelegate gpuDelegate = null;
   private boolean tfLiteBusy = false;
   private int inputSize = 0;
   private Vector<String> labels;
@@ -205,6 +207,10 @@ public class TflitePlugin implements MethodCallHandler {
     int numThreads = (int) args.get("numThreads");
     final Interpreter.Options tfliteOptions = new Interpreter.Options();
     tfliteOptions.setNumThreads(numThreads);
+
+    gpuDelegate = new GpuDelegate();
+    tfliteOptions.addDelegate(gpuDelegate);   
+    
     tfLite = new Interpreter(buffer, tfliteOptions);
 
     String labels = args.get("labels").toString();
@@ -1528,6 +1534,11 @@ public class TflitePlugin implements MethodCallHandler {
   private void close() {
     if (tfLite != null)
       tfLite.close();
+
+    if (gpuDelegate != null) {
+      gpuDelegate.close();
+      gpuDelegate = null;
+    }
     labels = null;
     labelProb = null;
   }
