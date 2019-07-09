@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.BitmapFactory;
+import android.nfc.Tag;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -50,6 +51,9 @@ import java.util.Vector;
 
 
 public class TflitePlugin implements MethodCallHandler {
+  
+  private static final String TAG = "TFLitePlugin";
+  
   private final Registrar mRegistrar;
   private Interpreter tfLite;
   private GpuDelegate gpuDelegate = null;
@@ -222,9 +226,15 @@ public class TflitePlugin implements MethodCallHandler {
     final Interpreter.Options tfliteOptions = new Interpreter.Options();
     tfliteOptions.setNumThreads(numThreads);
 
-    gpuDelegate = new GpuDelegate();
-    tfliteOptions.addDelegate(gpuDelegate);   
-    
+    boolean useGpu = (boolean) args.get("useGpu");
+    if (useGpu) {
+      gpuDelegate = new GpuDelegate();
+      tfliteOptions.addDelegate(gpuDelegate);
+      Log.d(TAG, "gpu enabled");
+    } else {
+      Log.d(TAG, "gpu disabled");
+    }
+
     tfLite = new Interpreter(buffer, tfliteOptions);
 
     String labels = args.get("labels").toString();
@@ -432,6 +442,7 @@ public class TflitePlugin implements MethodCallHandler {
         handler.post(new Runnable() {
           @Override
           public void run() {
+            Log.d(TAG, "Inference in thread: " + Thread.currentThread().getId());
             runTflite();
             tfLiteBusy = false;
             onRunTfliteDone();
@@ -484,7 +495,7 @@ public class TflitePlugin implements MethodCallHandler {
     }
 
     protected void onRunTfliteDone() {
-      Log.v("time", "Inference took " + (SystemClock.uptimeMillis() - startTime));
+      Log.v(TAG, "Inference took " + (SystemClock.uptimeMillis() - startTime));
       result.success(GetTopN(NUM_RESULTS, THRESHOLD));
     }
   }
@@ -545,7 +556,7 @@ public class TflitePlugin implements MethodCallHandler {
     }
 
     protected void onRunTfliteDone() {
-      Log.v("time", "Inference took " + (SystemClock.uptimeMillis() - startTime));
+      Log.v(TAG, "Inference took " + (SystemClock.uptimeMillis() - startTime));
       result.success(GetTopN(NUM_RESULTS, THRESHOLD));
     }
   }
@@ -654,7 +665,7 @@ public class TflitePlugin implements MethodCallHandler {
     }
 
     protected void onRunTfliteDone() {
-      Log.v("time", "Inference took " + (SystemClock.uptimeMillis() - startTime));
+      Log.v(TAG, "Inference took " + (SystemClock.uptimeMillis() - startTime));
 
       Map<String, Integer> counters = new HashMap<>();
       final List<Map<String, Object>> results = new ArrayList<>();
@@ -739,7 +750,7 @@ public class TflitePlugin implements MethodCallHandler {
     }
 
     protected void onRunTfliteDone() {
-      Log.v("time", "Inference took " + (SystemClock.uptimeMillis() - startTime));
+      Log.v(TAG, "Inference took " + (SystemClock.uptimeMillis() - startTime));
 
       PriorityQueue<Map<String, Object>> pq =
           new PriorityQueue<>(
@@ -858,7 +869,7 @@ public class TflitePlugin implements MethodCallHandler {
     }
 
     protected void onRunTfliteDone() {
-      Log.v("time", "Generating took " + (SystemClock.uptimeMillis() - startTime));
+      Log.v(TAG, "Generating took " + (SystemClock.uptimeMillis() - startTime));
       if (output.position() != input.limit()) {
         result.error("Mismatching input/output position", null, null);
         return;
@@ -904,7 +915,7 @@ public class TflitePlugin implements MethodCallHandler {
     }
 
     protected void onRunTfliteDone() {
-      Log.v("time", "Generating took " + (SystemClock.uptimeMillis() - startTime));
+      Log.v(TAG, "Generating took " + (SystemClock.uptimeMillis() - startTime));
       if (output.position() != input.limit()) {
         result.error("Mismatching input/output position", null, null);
         return;
@@ -953,7 +964,7 @@ public class TflitePlugin implements MethodCallHandler {
     }
 
     protected void onRunTfliteDone() {
-      Log.v("time", "Generating took " + (SystemClock.uptimeMillis() - startTime));
+      Log.v(TAG, "Generating took " + (SystemClock.uptimeMillis() - startTime));
       if (output.position() != input.limit()) {
         result.error("Mismatching input/output position", null, null);
         return;
@@ -999,7 +1010,7 @@ public class TflitePlugin implements MethodCallHandler {
     }
 
     protected void onRunTfliteDone() {
-      Log.v("time", "Inference took " + (SystemClock.uptimeMillis() - startTime));
+      Log.v(TAG, "Inference took " + (SystemClock.uptimeMillis() - startTime));
 
       if (input.limit() == 0) {
         result.error("Unexpected input position, bad file?", null, null);
@@ -1039,7 +1050,7 @@ public class TflitePlugin implements MethodCallHandler {
     }
 
     protected void onRunTfliteDone() {
-      Log.v("time", "Inference took " + (SystemClock.uptimeMillis() - startTime));
+      Log.v(TAG, "Inference took " + (SystemClock.uptimeMillis() - startTime));
 
       if (input.limit() == 0) {
         result.error("Unexpected input position, bad file?", null, null);
@@ -1086,7 +1097,7 @@ public class TflitePlugin implements MethodCallHandler {
     }
 
     protected void onRunTfliteDone() {
-      Log.v("time", "Inference took " + (SystemClock.uptimeMillis() - startTime));
+      Log.v(TAG, "Inference took " + (SystemClock.uptimeMillis() - startTime));
 
       if (input.limit() == 0) {
         result.error("Unexpected input position, bad file?", null, null);
@@ -1276,7 +1287,7 @@ public class TflitePlugin implements MethodCallHandler {
     }
 
     protected void onRunTfliteDone() {
-      Log.v("time", "Inference took " + (SystemClock.uptimeMillis() - startTime));
+      Log.v(TAG, "Inference took " + (SystemClock.uptimeMillis() - startTime));
 
       float[][][] scores = ((float[][][][]) outputMap.get(0))[0];
       float[][][] offsets = ((float[][][][]) outputMap.get(1))[0];
