@@ -97,14 +97,19 @@ public class TflitePlugin implements MethodCallHandler {
   }
 
   @Override
-  public void onMethodCall(MethodCall call, Result result) {
+  public void onMethodCall(final MethodCall call, final Result result) {
     if (call.method.equals("loadModel")) {
-      try {
-        String res = loadModel((HashMap) call.arguments);
-        result.success(res);
-      } catch (Exception e) {
-        result.error("Failed to load model", e.getMessage(), e);
-      }
+          handler.post(new Runnable() {
+            @Override
+            public void run() {
+              try {
+              String res = loadModel((HashMap) call.arguments);
+              result.success(res);
+              } catch (Exception e) {
+                result.error("Failed to load model", e.getMessage(), e);
+              }
+            }
+          });
     } else if (call.method.equals("runModelOnImage")) {
       try {
         new RunModelOnImage((HashMap) call.arguments, result).executeTfliteTask();
@@ -415,7 +420,7 @@ public class TflitePlugin implements MethodCallHandler {
       Object asynch = args.get("asynch");
       this.asynch = asynch == null ? false : (boolean) asynch;
       this.result = result;
-      this.asynch = false;
+      this.asynch = true;
     }
 
     abstract void runTflite();
@@ -423,7 +428,17 @@ public class TflitePlugin implements MethodCallHandler {
     abstract void onRunTfliteDone();
 
     public void executeTfliteTask() {
-      if (asynch) execute();
+      if (asynch) {
+        handler.post(new Runnable() {
+          @Override
+          public void run() {
+            runTflite();
+            tfLiteBusy = false;
+            onRunTfliteDone();
+          }
+        });
+        // execute();
+      }
       else {
         runTflite();
         tfLiteBusy = false;
