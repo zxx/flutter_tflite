@@ -226,8 +226,8 @@ public class TflitePlugin implements MethodCallHandler {
     final Interpreter.Options tfliteOptions = new Interpreter.Options();
     tfliteOptions.setNumThreads(numThreads);
 
-    boolean useGpu = (boolean) args.get("useGpu");
-    if (useGpu) {
+    int useGpu = (int) args.get("useGpu");
+    if (useGpu != 0) {
       gpuDelegate = new GpuDelegate();
       tfliteOptions.addDelegate(gpuDelegate);
       Log.d(TAG, "gpu enabled");
