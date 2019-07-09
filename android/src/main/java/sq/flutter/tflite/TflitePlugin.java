@@ -8,6 +8,8 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.SystemClock;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
@@ -57,6 +59,9 @@ public class TflitePlugin implements MethodCallHandler {
   float[][] labelProb;
   private static final int BYTES_PER_CHANNEL = 4;
 
+  private Handler handler;
+  private HandlerThread handlerThread;
+
   String[] partNames = {
       "nose", "leftEye", "rightEye", "leftEar", "rightEar", "leftShoulder",
       "rightShoulder", "leftElbow", "rightElbow", "leftWrist", "rightWrist",
@@ -85,6 +90,10 @@ public class TflitePlugin implements MethodCallHandler {
 
   private TflitePlugin(Registrar registrar) {
     this.mRegistrar = registrar;
+
+    handlerThread = new HandlerThread("inference");
+    handlerThread.start();
+    handler = new Handler(handlerThread.getLooper());
   }
 
   @Override
@@ -406,6 +415,7 @@ public class TflitePlugin implements MethodCallHandler {
       Object asynch = args.get("asynch");
       this.asynch = asynch == null ? false : (boolean) asynch;
       this.result = result;
+      this.asynch = false;
     }
 
     abstract void runTflite();
@@ -1534,7 +1544,6 @@ public class TflitePlugin implements MethodCallHandler {
   private void close() {
     if (tfLite != null)
       tfLite.close();
-
     if (gpuDelegate != null) {
       gpuDelegate.close();
       gpuDelegate = null;
